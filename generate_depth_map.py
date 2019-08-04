@@ -81,21 +81,22 @@ def main(_):
           toShow = cv2.resize(toShow, (width//2, height))
 
           cv2.imshow('pydnet', toShow)
-          k = cv2.waitKey(500)         
+          k = cv2.waitKey(1)         
           if k == 1048603 or k == 27: 
             break  # esc to quit
           if k == 1048688:
             cv2.waitKey(0) # 'p' to pause
 
           #print("Time: " + str(end - start))
-          L1 = disp_color[: ,0: 64]
-          L2 = disp_color[: ,64: 128]
-          L3 = disp_color[: ,128: 192]
-          L4 = disp_color[: ,192: 256]
-          R1 = disp_color[: ,256: 320]
-          R2 = disp_color[: ,320: 384]
-          R3 = disp_color[: ,384: 448]
-          R4 = disp_color[: ,448: 512]
+          dc = disp_color * 255
+          L1 = dc[: ,0: 64]
+          L2 = dc[: ,64: 128]
+          L3 = dc[: ,128: 192]
+          L4 = dc[: ,192: 256]
+          R1 = dc[: ,256: 320]
+          R2 = dc[: ,320: 384]
+          R3 = dc[: ,384: 448]
+          R4 = dc[: ,448: 512]
           print(L1.mean(),L2.mean(),L3.mean(),L4.mean(),R1.mean(),R2.mean(),R3.mean(),R4.mean()) 
           del img
           del disp
