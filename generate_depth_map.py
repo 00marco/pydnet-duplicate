@@ -39,8 +39,9 @@ parser = argparse.ArgumentParser(description='Argument parser')
 """ Arguments related to network architecture"""
 parser.add_argument('--width', dest='width', type=int, default=512, help='width of input images')
 parser.add_argument('--height', dest='height', type=int, default=256, help='height of input images')
-parser.add_argument('--resolution', dest='resolution', type=int, default=1, help='resolution [1:H, 2:Q, 3:E]')
+parser.add_argument('--resolution', dest='resolution', type=int, default=3, help='resolution [1:H, 2:Q, 3:E]')
 parser.add_argument('--checkpoint_dir', dest='checkpoint_dir', type=str, default='checkpoint/IROS18/pydnet', help='checkpoint directory')
+parser.add_argument('--filename', dest='filename', type=str, default='london_walk(1).mp4', help='file name of the video file to be used in inference')
 
 args = parser.parse_args()
 
@@ -50,6 +51,7 @@ def main(_):
     height = args.height
     width = args.width
     placeholders = {'im0':tf.placeholder(tf.float32,[None, None, None, 3], name='im0')}
+    filename = args.filename
 
     with tf.variable_scope("model") as scope:
       model = pydnet(placeholders)
@@ -59,7 +61,7 @@ def main(_):
 
     loader = tf.train.Saver()
     saver = tf.train.Saver()
-    cam = cv2.VideoCapture(0)
+    cam = cv2.VideoCapture(filename)
 
     with tf.Session() as sess:
         sess.run(init)
@@ -86,6 +88,9 @@ def main(_):
             cv2.waitKey(0) # 'p' to pause
 
           print("Time: " + str(end - start))
+          L = disp_color[: ,0: width/2]
+          R = disp_color[: ,width/2: width]
+          print("L-%d/tR-%d", L.mean(), R.mean())
           del img
           del disp
           del toShow
