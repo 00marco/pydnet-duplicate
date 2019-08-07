@@ -1,4 +1,4 @@
-#
+	#
 # MIT License
 #
 # Copyright (c) 2018 Matteo Poggi m.poggi@unibo.it
@@ -59,7 +59,7 @@ def main(_):
 
     loader = tf.train.Saver()
     saver = tf.train.Saver()
-    cam = cv2.VideoCapture(0)
+    cam = cv2.VideoCapture("../../test-videos/london_walk(1).mp4")
 
     with tf.Session() as sess:
         sess.run(init)
@@ -67,7 +67,7 @@ def main(_):
         while True:
           for i in range(4):
             cam.grab()
-          ret_val, img = cam.read() 
+          ret_val, img = cam.read()
           img = cv2.resize(img, (width, height)).astype(np.float32) / 255.
           img = np.expand_dims(img, 0)
           start = time.time()
