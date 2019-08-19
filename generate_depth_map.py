@@ -30,6 +30,7 @@ import time
 import datetime
 from utils import *
 from pydnet import *
+import png
 
 # forces tensorflow to run on CPU
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
@@ -61,11 +62,12 @@ def main(_):
 
     loader = tf.train.Saver()
     saver = tf.train.Saver()
-    cam = cv2.VideoCapture(filename)
+    cam = cv2.VideoCapture('../test-videos/' + filename)
 
     with tf.Session() as sess:
         sess.run(init)
         loader.restore(sess, args.checkpoint_dir)
+        count=0
         while True:
           for i in range(4):
             cam.grab()
@@ -79,6 +81,9 @@ def main(_):
           disp_color = applyColorMap(disp[0,:,:,0]*20, 'plasma')
           toShow = (np.concatenate((img[0], disp_color), 0)*255.).astype(np.uint8)
           toShow = cv2.resize(toShow, (width//2, height))
+          #os.mkdir(filename[:-4])
+          #np.savetxt(filename[:-4] + '/' + str(count)+'.out' ,disp)
+          count += 1
 
           cv2.imshow('pydnet', toShow)
           k = cv2.waitKey(1)         
@@ -97,7 +102,7 @@ def main(_):
           R2 = dc[: ,320: 384]
           R3 = dc[: ,384: 448]
           R4 = dc[: ,448: 512]
-          print(L1.mean(),L2.mean(),L3.mean(),L4.mean(),R1.mean(),R2.mean(),R3.mean(),R4.mean()) 
+          print(count,L1.mean(),L2.mean(),L3.mean(),L4.mean(),R1.mean(),R2.mean(),R3.mean(),R4.mean()) 
           del img
           del disp
           del toShow
