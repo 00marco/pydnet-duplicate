@@ -24,20 +24,92 @@
 
 import tensorflow as tf
 import sys
+from pygame import mixer
 import os
 import argparse
 import time
 import datetime
 from utils import *
 from pydnet import *
-import subprocess
-import pygame
+import png
+import math
+import time
 
-from struct import pack
-from math import sin,pi
-import wave
-import random
+def mapFunction(value, min_orig, max_orig, min_new, max_new):
+  result = (min_new + ((max_new - min_new)/(max_orig - min_orig)) * (value - min_orig))
+  if(result > 6300):
+    result = 6300
+  if(result < 200):
+    result = 200
+  upperhundred =  int(math.ceil(result/100.0)) * 100
+  lowerhundred = upperhundred - 100
+  
+  if(abs(result - upperhundred) > abs(result - lowerhundred)):
+    return lowerhundred
+  else:
+    return upperhundred
 
+def mapFunction2(value, min_orig, max_orig, min_new, max_new):
+  result = (min_new + ((max_new - min_new)/(max_orig - min_orig)) * (value - min_orig))
+  upperhundred =  int(math.ceil(result/100.0)) * 100
+  lowerhundred = upperhundred - 100
+  return upperhundred
+
+def play_audio(L1,L2,L3,L4,R1,R2,R3,R4):
+  sec1 = "%s_100_L.wav" % L1
+  sec2 = "%s_080_L.wav" % L2
+  sec3 = "%s_050_L.wav" % L3
+  sec4 = "%s_030_L.wav" % L4
+  sec5 = "%s_030_R.wav" % R1
+  sec6 = "%s_050_R.wav" % R2
+  sec7 = "%s_080_R.wav" % R3
+  sec8 = "%s_100_R.wav" % R4
+  LOCATION = "../../audio-files/"
+  SHORT_WAIT = 0.3
+  LONG_WAIT = 0.75
+  MIN_VAL = 1000
+  
+  mixer.init()
+  if(L1 > MIN_VAL):
+    mixer.music.load(LOCATION + sec1)
+    mixer.music.play()
+    time.sleep(SHORT_WAIT)
+
+  if(L2 > MIN_VAL):
+    mixer.music.load(LOCATION + sec2)
+    mixer.music.play()
+    time.sleep(SHORT_WAIT)
+
+  if(L3 > MIN_VAL):
+    mixer.music.load(LOCATION + sec3)
+    mixer.music.play()
+    time.sleep(SHORT_WAIT)
+
+  if(L4 > MIN_VAL):
+    mixer.music.load(LOCATION + sec4)
+    mixer.music.play()
+    time.sleep(SHORT_WAIT)
+
+  if(R1 > MIN_VAL):
+    mixer.music.load(LOCATION + sec5)
+    mixer.music.play()
+    time.sleep(SHORT_WAIT)
+
+  if(R2 > MIN_VAL):
+    mixer.music.load(LOCATION + sec6)
+    mixer.music.play()
+    time.sleep(SHORT_WAIT)
+
+  if(R3 > MIN_VAL):
+    mixer.music.load(LOCATION + sec7)
+    mixer.music.play()
+    time.sleep(SHORT_WAIT)
+
+  if(R4 > MIN_VAL):
+    mixer.music.load(LOCATION + sec8)
+    mixer.music.play()
+    time.sleep(LONG_WAIT)
+  
 # forces tensorflow to run on CPU
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
@@ -48,7 +120,7 @@ parser.add_argument('--width', dest='width', type=int, default=512, help='width 
 parser.add_argument('--height', dest='height', type=int, default=256, help='height of input images')
 parser.add_argument('--resolution', dest='resolution', type=int, default=3, help='resolution [1:H, 2:Q, 3:E]')
 parser.add_argument('--checkpoint_dir', dest='checkpoint_dir', type=str, default='checkpoint/IROS18/pydnet', help='checkpoint directory')
-parser.add_argument('--filename', dest='filename', type=str, default='london_walk(1).mp4', help='file name of the video file to be used in inference')
+parser.add_argument('--filename', dest='filename', type=str, default='roxas1.mp4', help='file name of the video file to be used in inference')
 
 args = parser.parse_args()
 
@@ -68,104 +140,91 @@ def main(_):
 
     loader = tf.train.Saver()
     saver = tf.train.Saver()
-    cam = cv2.VideoCapture("../../test-videos/VID_20191103_082154.mp4")
+    #cam = cv2.VideoCapture('../test-videos/' + filename)
+    cam = cv2.VideoCapture(0)
 
     with tf.Session() as sess:
         sess.run(init)
         loader.restore(sess, args.checkpoint_dir)
+        count=0
         while True:
           for i in range(4):
             cam.grab()
           ret_val, img = cam.read() 
+          # if count % 10 != 0:
+          #   count += 1
+          #   continue
+          # uncomment next line to generate images
+          # cv2.imwrite(str(count) + '-' + filename[:-4] + '.jpg', img)
+          
           img = cv2.resize(img, (width, height)).astype(np.float32) / 255.
           img = np.expand_dims(img, 0)
+          
           start = time.time()
           disp = sess.run(model.results[args.resolution-1], feed_dict={placeholders['im0']: img})
-          
+          end = time.time()
 
           disp_color = applyColorMap(disp[0,:,:,0]*20, 'plasma')
-          #toShow = (np.concatenate((img[0], disp_color), 0)*255.).astype(np.uint8)
-          #toShow = cv2.resize(toShow, (width//2, height))
+          toShow = (np.concatenate((img[0], disp_color), 0)*255.).astype(np.uint8)
+          toShow = cv2.resize(toShow, (width//2, height))
+          #os.mkdir(filename[:-4])
 
-          #cv2.imshow('pydnet', toShow)
-          #k = cv2.waitKey(1)         
-          #if k == 1048603 or k == 27: 
-          #  break  # esc to quit
-          #if k == 1048688:
-          #  cv2.waitKey(0) # 'p' to pause
+          # uncomment for saving data
+          # np.savetxt(str(count) + '-' + filename[:-4] + '-savetxt-' + '.txt',disp, delimiter=', ', fmt='%s', header="load file using => np.loadtxt('filename', dtype=int)")
+          # np.save(str(count) + '-' + filename[:-4] + '-save-' + '.npy',disp)
+
+          count += 1
+
+          cv2.imshow('pydnet', toShow)
+          k = cv2.waitKey(1)         
+          if k == 1048603 or k == 27: 
+            break  # esc to quit
+          if k == 1048688:
+            cv2.waitKey(0) # 'p' to pause
 
           #print("Time: " + str(end - start))
           dc = disp_color * 255
-          L1 = dc[: ,0: 64].mean()
-          L2 = dc[: ,64: 128].mean()
-          L3 = dc[: ,128: 192].mean()
-          L4 = dc[: ,192: 256].mean()
-          R1 = dc[: ,256: 320].mean()
-          R2 = dc[: ,320: 384].mean()
-          R3 = dc[: ,384: 448].mean()
-          R4 = dc[: ,448: 512].mean()
+          min_orig = 50.0
+          max_orig = 150.0
+          min_new = 200.0
+          max_new = 6300.0
+          
+          unprocessed_L1 = mapFunction2(dc[: ,0: 64].mean(), min_orig, max_orig, min_new, max_new)
+          unprocessed_L2 = mapFunction2(dc[: ,64: 128].mean(), min_orig, max_orig, min_new, max_new)
+          unprocessed_L3 = mapFunction2(dc[: ,128: 192].mean(), min_orig, max_orig, min_new, max_new)
+          unprocessed_L4 = mapFunction2(dc[: ,192: 256].mean(), min_orig, max_orig, min_new, max_new)
+          unprocessed_R1 = mapFunction2(dc[: ,256: 320].mean(), min_orig, max_orig, min_new, max_new)
+          unprocessed_R2 = mapFunction2(dc[: ,320: 384].mean(), min_orig, max_orig, min_new, max_new)
+          unprocessed_R3 = mapFunction2(dc[: ,384: 448].mean(), min_orig, max_orig, min_new, max_new)
+          unprocessed_R4 = mapFunction2(dc[: ,448: 512].mean(), min_orig, max_orig, min_new, max_new)
 
-          #code to play sound using amixer unfinished
-          #followed by code to play sound using mplayer. finished but not good for
-          #multiple audio files.
+          L1 = mapFunction(dc[: ,0: 64].mean(), min_orig, max_orig, min_new, max_new)
+          L2 = mapFunction(dc[: ,64: 128].mean(), min_orig, max_orig, min_new, max_new)
+          L3 = mapFunction(dc[: ,128: 192].mean(), min_orig, max_orig, min_new, max_new)
+          L4 = mapFunction(dc[: ,192: 256].mean(), min_orig, max_orig, min_new, max_new)
+          R1 = mapFunction(dc[: ,256: 320].mean(), min_orig, max_orig, min_new, max_new)
+          R2 = mapFunction(dc[: ,320: 384].mean(), min_orig, max_orig, min_new, max_new)
+          R3 = mapFunction(dc[: ,384: 448].mean(), min_orig, max_orig, min_new, max_new)
+          R4 = mapFunction(dc[: ,448: 512].mean(), min_orig, max_orig, min_new, max_new)
 
-          # player1 = subprocess.Popen(["amixer", "set", "PCM", "100%"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-          player1 = subprocess.Popen(["mplayer", "../../audio-files/200Hz/200Hz_100_L.wav"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-          time.sleep(0.25)
-          
-          player1 = subprocess.Popen(["mplayer", "../../audio-files/200Hz/200Hz_070_L.wav"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-          time.sleep(0.25)
-          
-          player1 = subprocess.Popen(["mplayer", "../../audio-files/200Hz/200Hz_050_L.wav"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-          time.sleep(0.25)
-          
-          player1 = subprocess.Popen(["mplayer", "../../audio-files/200Hz/200Hz_020_L.wav"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-          time.sleep(0.25)
-          
-          player1 = subprocess.Popen(["mplayer", "../../audio-files/200Hz/200Hz_020_R.wav"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-          time.sleep(0.25)
-          
-          player1 = subprocess.Popen(["mplayer", "../../audio-files/200Hz/200Hz_050_R.wav"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-          time.sleep(0.25)
-          
-          player1 = subprocess.Popen(["mplayer", "../../audio-files/200Hz/200Hz_070_R.wav"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-          time.sleep(0.25)
-          
-          player1 = subprocess.Popen(["mplayer", "../../audio-files/200Hz/200Hz_100_R.wav"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-          time.sleep(0.25)
-          
-          #print(L1.mean(),L2.mean(),L3.mean(),L4.mean(),R1.mean(),R2.mean(),R3.mean(),R4.mean()) 
-          
-          #***************************************************
+          print(count,L1,L2,L3,L4,R1,R2,R3,R4)
+          print(count,unprocessed_L1,unprocessed_L2,unprocessed_L3,unprocessed_L4,unprocessed_R1,unprocessed_R2,unprocessed_R3,unprocessed_R4)
+          print(end-start)
+          print()
 
-          #CODE TO PLAY SOUND USING PYGAME
-          #only playing the last sound. cant play multiple sounds in sequence
-          # pygame.mixer.init()
-          # pygame.mixer.music.load("../../audio-files/Audio-files-for-ETA/audiocheck.net_sin_300Hz_-3dBFS_0.25s.wav")
-          # pygame.mixer.music.play()
-          # while pygame.mixer.music.get_busy == True:
-          #   continue
+          play_audio(L1,L2,L3,L4,R1,R2,R3,R4)
 
-          # pygame.mixer.init()
-          # pygame.mixer.music.load("../../audio-files/Audio-files-for-ETA/audiocheck.net_sin_600Hz_-3dBFS_0.25s.wav")
-          # pygame.mixer.music.play()
-          # while pygame.mixer.music.get_busy == True:
-          #   continue
+          # arr_out = np.array([count,L1.mean(),L2.mean(),L3.mean(),L4.mean(),R1.mean(),R2.mean(),R3.mean(),R4.mean()])
+#         #uncomment for saving data
+#         np.savetxt(str(count) + '-' + 'readings' + '-savetxt-' + '.txt',arr_out, delimiter=', ', fmt='%s', header="load file using => np.loadtxt('filename', dtype=int)")
+#         np.save(str(count) + '-' + 'readings' + '-save-' + '.npy',arr_out)
 
-          #***************************************************
-
-          # DEVNULL = open(os.devnull,"w")
-          # subprocess.call(["amixer","set","PCM","100%"],stdout=DEVNULL)
-
-          # subprocess.Popen(["aplay", "../../audio-files/Audio-files-for-ETA/audiocheck.net_sin_600Hz_-3dBFS_0.25s.wav"])
-
-          
           del img
           del disp
-          #del toShow
-          end = time.time()
-          print(end - start)
+          del toShow
+          
         cam.release()        
 
 if __name__ == '__main__':
     tf.app.run()
+
