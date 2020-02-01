@@ -59,7 +59,7 @@ def main(_):
 
     loader = tf.train.Saver()
     saver = tf.train.Saver()
-    cam = cv2.VideoCapture("../../test-videos/london_walk(1).mp4")
+    cam = cv2.VideoCapture("../../test-videos/VID_20191103_082154.mp4")
 
     with tf.Session() as sess:
         sess.run(init)
